@@ -1,0 +1,918 @@
+// Q1. Create a Flutter Notes application
+// that stores notes in SQLite and displays them.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Notes()));
+
+class Notes extends StatefulWidget {
+  State<Notes> createState() => _NotesState();
+}
+
+class _NotesState extends State<Notes> {
+  Database? db;
+  List notes = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(
+      join(await getDatabasesPath(), 'notes.db'),
+      version: 1,
+      onCreate: (d, v) => d.execute(
+        'CREATE TABLE notes(id INTEGER PRIMARY KEY, title TEXT, content TEXT)'));
+    load();
+  }
+
+  void load() async {
+    notes = await db!.query('notes');
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Notes')),
+    body: ListView(children: notes.map((n) =>
+      ListTile(title: Text(n['title']),
+        subtitle: Text(n['content']))).toList()),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('notes',
+          {'title': 'My Note', 'content': 'Hello Flutter'});
+        load();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q2. Extend the Notes application to edit an existing note
+// when the user taps on it.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Notes()));
+
+class Notes extends StatefulWidget {
+  State<Notes> createState() => _NotesState();
+}
+
+class _NotesState extends State<Notes> {
+  Database? db;
+  List data = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 'edit.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE notes(id INTEGER PRIMARY KEY, title TEXT, content TEXT)'));
+    load();
+  }
+
+  void load() async {
+    data = await db!.query('notes');
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Edit Notes')),
+    body: ListView(children: data.map((n) => ListTile(
+      title: Text(n['title']),
+      onTap: () async {
+        await db!.update('notes', {'title': 'Updated Note'},
+          where: 'id=?', whereArgs: [n['id']]);
+        load();
+      },
+    )).toList()),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('notes',
+          {'title': 'New Note', 'content': 'Note Content'});
+        load();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q3. Extend the Notes application to delete a note by
+// swiping and display a SnackBar.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Notes()));
+
+class Notes extends StatefulWidget {
+  State<Notes> createState() => _NotesState();
+}
+
+class _NotesState extends State<Notes> {
+  Database? db;
+  List data = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 'delete.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE notes(id INTEGER PRIMARY KEY, title TEXT, content TEXT)'));
+    load();
+  }
+
+  void load() async {
+    data = await db!.query('notes');
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Delete Notes')),
+    body: ListView(children: data.map((n) => Dismissible(
+      key: Key(n['id'].toString()),
+      onDismissed: (d) async {
+        await db!.delete('notes', where: 'id=?', whereArgs: [n['id']]);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Note Deleted')));
+        load();
+      },
+      child: ListTile(title: Text(n['title'])),
+    )).toList()),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('notes',
+          {'title': 'Sample Note', 'content': 'Hello'});
+        load();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q4. Create a search feature to find notes by title
+// using a TextField and SQLite query.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Notes()));
+
+class Notes extends StatefulWidget {
+  State<Notes> createState() => _NotesState();
+}
+
+class _NotesState extends State<Notes> {
+  Database? db;
+  List data = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 'search.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE notes(id INTEGER PRIMARY KEY, title TEXT, content TEXT)'));
+    load('');
+  }
+
+  void load(String s) async {
+    data = await db!.query('notes',
+      where: 'title LIKE ?', whereArgs: ['%$s%']);
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Search Notes')),
+    body: Column(children: [
+      TextField(
+        decoration: InputDecoration(hintText: 'Search title'),
+        onChanged: load,
+      ),
+      Expanded(child: ListView(children: data.map((n) =>
+        ListTile(title: Text(n['title']))).toList())),
+    ]),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('notes',
+          {'title': 'Flutter Notes', 'content': 'SQLite'});
+        load('');
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q5. Create a Contact Book application that stores contacts
+// (name and phone) in SQLite and displays them in a list.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Contacts()));
+
+class Contacts extends StatefulWidget {
+  State<Contacts> createState() => _ContactsState();
+}
+
+class _ContactsState extends State<Contacts> {
+  Database? db;
+  List data = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 'contacts.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE contacts(id INTEGER PRIMARY KEY, name TEXT, phone TEXT)'));
+    load();
+  }
+
+  void load() async {
+    data = await db!.query('contacts');
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Contact Book')),
+    body: ListView(children: data.map((c) => ListTile(
+      title: Text(c['name']),
+      subtitle: Text(c['phone']),
+    )).toList()),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('contacts',
+          {'name': 'Rahul', 'phone': '9876543210'});
+        load();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q6. Delete a contact after confirmation using AlertDialog.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Contacts()));
+
+class Contacts extends StatefulWidget {
+  State<Contacts> createState() => _ContactsState();
+}
+
+class _ContactsState extends State<Contacts> {
+  Database? db;
+  List data = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 'c6.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE contacts(id INTEGER PRIMARY KEY, name TEXT, phone TEXT)'));
+    load();
+  }
+
+  void load() async {
+    data = await db!.query('contacts');
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Contacts')),
+    body: ListView(children: data.map((c) => ListTile(
+      title: Text(c['name']),
+      trailing: IconButton(
+        icon: Icon(Icons.delete),
+        onPressed: () => showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Delete Contact?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context),
+                child: Text('Cancel')),
+              TextButton(onPressed: () async {
+                await db!.delete('contacts',
+                  where: 'id=?', whereArgs: [c['id']]);
+                Navigator.pop(context);
+                load();
+              }, child: Text('Delete')),
+            ],
+          ),
+        ),
+      ),
+    )).toList()),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('contacts',
+          {'name': 'Rahul', 'phone': '1234567890'});
+        load();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q7. Search contacts by name using the LIKE operator.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Contacts()));
+
+class Contacts extends StatefulWidget {
+  State<Contacts> createState() => _ContactsState();
+}
+
+class _ContactsState extends State<Contacts> {
+  Database? db;
+  List data = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 'c7.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE contacts(id INTEGER PRIMARY KEY, name TEXT, phone TEXT)'));
+    search('');
+  }
+
+  void search(String s) async {
+    data = await db!.query('contacts',
+      where: 'name LIKE ?', whereArgs: ['%$s%']);
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Search Contacts')),
+    body: Column(children: [
+      TextField(onChanged: search,
+        decoration: InputDecoration(hintText: 'Search name')),
+      Expanded(child: ListView(children: data.map((c) =>
+        ListTile(title: Text(c['name']),
+          subtitle: Text(c['phone']))).toList())),
+    ]),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('contacts',
+          {'name': 'Aman', 'phone': '9876543210'});
+        search('');
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q8. Create an Expense Tracker that stores title and amount
+// in SQLite and displays expenses.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Expenses()));
+
+class Expenses extends StatefulWidget {
+  State<Expenses> createState() => _ExpensesState();
+}
+
+class _ExpensesState extends State<Expenses> {
+  Database? db;
+  List data = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 'e8.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE expenses(id INTEGER PRIMARY KEY, title TEXT, amount REAL)'));
+    load();
+  }
+
+  void load() async {
+    data = await db!.query('expenses');
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Expense Tracker')),
+    body: ListView(children: data.map((e) => ListTile(
+      title: Text(e['title']),
+      subtitle: Text('₹${e['amount']}'),
+    )).toList()),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('expenses',
+          {'title': 'Food', 'amount': 200.0});
+        load();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q9. Display total expense using the SQL SUM function.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Expenses()));
+
+class Expenses extends StatefulWidget {
+  State<Expenses> createState() => _ExpensesState();
+}
+
+class _ExpensesState extends State<Expenses> {
+  Database? db;
+  double total = 0;
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 'e9.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE expenses(id INTEGER PRIMARY KEY, title TEXT, amount REAL)'));
+    calculate();
+  }
+
+  void calculate() async {
+    var r = await db!.rawQuery('SELECT SUM(amount) AS total FROM expenses');
+    total = (r.first['total'] as num?)?.toDouble() ?? 0;
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Total Expense')),
+    body: Center(child: Text('Total: ₹$total')),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('expenses',
+          {'title': 'Shopping', 'amount': 500.0});
+        calculate();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q10. Create a To-Do app that stores tasks in SQLite
+// and updates completed status using Checkbox.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Todo()));
+
+class Todo extends StatefulWidget {
+  State<Todo> createState() => _TodoState();
+}
+
+class _TodoState extends State<Todo> {
+  Database? db;
+  List data = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 't10.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE tasks(id INTEGER PRIMARY KEY, task TEXT, done INTEGER)'));
+    load();
+  }
+
+  void load() async {
+    data = await db!.query('tasks');
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('To-Do List')),
+    body: ListView(children: data.map((t) => CheckboxListTile(
+      title: Text(t['task']),
+      value: t['done'] == 1,
+      onChanged: (v) async {
+        await db!.update('tasks', {'done': v! ? 1 : 0},
+          where: 'id=?', whereArgs: [t['id']]);
+        load();
+      },
+    )).toList()),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('tasks', {'task': 'Study Flutter', 'done': 0});
+        load();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q11. Create a Registration app that stores name, email
+// and password in an SQLite database.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Register()));
+
+class Register extends StatelessWidget {
+  final name = TextEditingController();
+  final email = TextEditingController();
+  final pass = TextEditingController();
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Registration')),
+    body: Column(children: [
+      TextField(controller: name, decoration: InputDecoration(labelText: 'Name')),
+      TextField(controller: email, decoration: InputDecoration(labelText: 'Email')),
+      TextField(controller: pass, decoration: InputDecoration(labelText: 'Password')),
+      ElevatedButton(onPressed: () async {
+        var db = await openDatabase(join(await getDatabasesPath(), 'r11.db'),
+          version: 1, onCreate: (d, v) => d.execute(
+          'CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT, email TEXT, pass TEXT)'));
+        await db.insert('users', {
+          'name': name.text, 'email': email.text, 'pass': pass.text
+        });
+      }, child: Text('Register')),
+    ]),
+  );
+}
+
+// Q12. Validate username and password using SQLite
+// and navigate to Home screen on success.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Login()));
+
+class Login extends StatelessWidget {
+  final user = TextEditingController();
+  final pass = TextEditingController();
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Login')),
+    body: Column(children: [
+      TextField(controller: user, decoration: InputDecoration(labelText: 'Email')),
+      TextField(controller: pass, decoration: InputDecoration(labelText: 'Password')),
+      ElevatedButton(onPressed: () async {
+        var db = await openDatabase(join(await getDatabasesPath(), 'r11.db'),
+          version: 1, onCreate: (d, v) => d.execute(
+          'CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT, email TEXT, pass TEXT)'));
+        var r = await db.query('users', where: 'email=? AND pass=?',
+          whereArgs: [user.text, pass.text]);
+        if (r.isNotEmpty) {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (_) => Scaffold(body: Center(child: Text('Welcome Home')))));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Invalid Login')));
+        }
+      }, child: Text('Login')),
+    ]),
+  );
+}
+
+// Q13. Validate empty fields, email and password length
+// using Form and TextFormField before inserting into SQLite.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Register()));
+
+class Register extends StatelessWidget {
+  final form = GlobalKey<FormState>();
+  final name = TextEditingController();
+  final email = TextEditingController();
+  final pass = TextEditingController();
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Register')),
+    body: Form(key: form, child: Column(children: [
+      TextFormField(controller: name,
+        validator: (v) => v!.isEmpty ? 'Enter name' : null),
+      TextFormField(controller: email,
+        validator: (v) => !v!.contains('@') ? 'Invalid email' : null),
+      TextFormField(controller: pass,
+        validator: (v) => v!.length < 6 ? 'Min 6 characters' : null),
+      ElevatedButton(onPressed: () async {
+        if (form.currentState!.validate()) {
+          var db = await openDatabase(join(await getDatabasesPath(), 'v13.db'),
+            version: 1, onCreate: (d, v) => d.execute(
+            'CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT, email TEXT, pass TEXT)'));
+          await db.insert('users', {
+            'name': name.text, 'email': email.text, 'pass': pass.text
+          });
+        }
+      }, child: Text('Submit')),
+    ])),
+  );
+}
+
+// Q14. Create Student List and Add Student screens connected
+// using Navigator and SQLite.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Students()));
+
+class Students extends StatefulWidget {
+  State<Students> createState() => _StudentsState();
+}
+
+class _StudentsState extends State<Students> {
+  Database? db;
+  List data = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 's14.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE students(id INTEGER PRIMARY KEY, name TEXT)'));
+    load();
+  }
+
+  void load() async {
+    data = await db!.query('students');
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Students')),
+    body: ListView(children: data.map((s) =>
+      ListTile(title: Text(s['name']))).toList()),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('students', {'name': 'Aman'});
+        load();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q15. Create Product Inventory using SQLite to add,
+// update and delete products.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Products()));
+
+class Products extends StatefulWidget {
+  State<Products> createState() => _ProductsState();
+}
+
+class _ProductsState extends State<Products> {
+  Database? db;
+  List data = [];
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 'p15.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE products(id INTEGER PRIMARY KEY, name TEXT, qty INTEGER, price REAL)'));
+    load();
+  }
+
+  void load() async {
+    data = await db!.query('products');
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Inventory')),
+    body: ListView(children: data.map((p) => ListTile(
+      title: Text(p['name']),
+      subtitle: Text('Qty: ${p['qty']} Price: ${p['price']}'),
+      onTap: () async {
+        await db!.update('products', {'qty': 10},
+          where: 'id=?', whereArgs: [p['id']]);
+        load();
+      },
+      trailing: IconButton(icon: Icon(Icons.delete),
+        onPressed: () async {
+          await db!.delete('products',
+            where: 'id=?', whereArgs: [p['id']]);
+          load();
+        }),
+    )).toList()),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('products',
+          {'name': 'Pen', 'qty': 5, 'price': 10.0});
+        load();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q16. Create a Shopping Cart that stores items in SQLite
+// and displays the total price.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Cart()));
+
+class Cart extends StatefulWidget {
+  State<Cart> createState() => _CartState();
+}
+
+class _CartState extends State<Cart> {
+  Database? db;
+  List data = [];
+  double total = 0;
+
+  void initState() {
+    super.initState();
+    open();
+  }
+
+  Future open() async {
+    db = await openDatabase(join(await getDatabasesPath(), 'cart16.db'),
+      version: 1, onCreate: (d, v) => d.execute(
+      'CREATE TABLE cart(id INTEGER PRIMARY KEY, name TEXT, price REAL)'));
+    load();
+  }
+
+  void load() async {
+    data = await db!.query('cart');
+    var r = await db!.rawQuery('SELECT SUM(price) AS total FROM cart');
+    total = (r.first['total'] as num?)?.toDouble() ?? 0;
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Shopping Cart')),
+    body: Column(children: [
+      Expanded(child: ListView(children: data.map((p) =>
+        ListTile(title: Text(p['name']),
+          subtitle: Text('₹${p['price']}'))).toList())),
+      Text('Total: ₹$total'),
+    ]),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () async {
+        await db!.insert('cart', {'name': 'Book', 'price': 100.0});
+        load();
+      },
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+// Q17. Create a Student Management Application using SQLite
+// with Home, Add Student, Student List and Update Student
+// screens, input validation and delete confirmation.
+
+import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+void main() => runApp(MaterialApp(home: Home()));
+
+Future<Database> getDB() async => openDatabase(
+  join(await getDatabasesPath(), 's17.db'),
+  version: 1,
+  onCreate: (d, v) => d.execute(
+    'CREATE TABLE students(id INTEGER PRIMARY KEY, name TEXT)'),
+);
+
+class Home extends StatelessWidget {
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Student Management')),
+    body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      ElevatedButton(onPressed: () => Navigator.push(context,
+        MaterialPageRoute(builder: (_) => AddStudent())),
+        child: Text('Add Student')),
+      ElevatedButton(onPressed: () => Navigator.push(context,
+        MaterialPageRoute(builder: (_) => StudentList())),
+        child: Text('Student List')),
+    ])),
+  );
+}
+
+class AddStudent extends StatelessWidget {
+  final name = TextEditingController();
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Add Student')),
+    body: Column(children: [
+      TextField(controller: name, decoration: InputDecoration(labelText: 'Name')),
+      ElevatedButton(onPressed: () async {
+        if (name.text.isNotEmpty) {
+          var db = await getDB();
+          await db.insert('students', {'name': name.text});
+          Navigator.pop(context);
+        }
+      }, child: Text('Save')),
+    ]),
+  );
+}
+
+class StudentList extends StatefulWidget {
+  State<StudentList> createState() => _StudentListState();
+}
+
+class _StudentListState extends State<StudentList> {
+  List data = [];
+
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  void load() async {
+    var db = await getDB();
+    data = await db.query('students');
+    setState(() {});
+  }
+
+  Widget build(context) => Scaffold(
+    appBar: AppBar(title: Text('Student List')),
+    body: ListView(children: data.map((s) => ListTile(
+      title: Text(s['name']),
+      onTap: () async {
+        var db = await getDB();
+        await db.update('students', {'name': 'Updated Student'},
+          where: 'id=?', whereArgs: [s['id']]);
+        load();
+      },
+      trailing: IconButton(icon: Icon(Icons.delete), onPressed: () async {
+        bool? ok = await showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text('Delete Student?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false),
+                child: Text('No')),
+              TextButton(onPressed: () => Navigator.pop(context, true),
+                child: Text('Yes')),
+            ],
+          ),
+        );
+        if (ok == true) {
+          var db = await getDB();
+          await db.delete('students', where: 'id=?', whereArgs: [s['id']]);
+          load();
+        }
+      }),
+    )).toList()),
+  );
+}
+

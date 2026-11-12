@@ -1,0 +1,464 @@
+// Q1. Parse JSON array into List of Student objects.
+
+import 'dart:convert';
+
+class Student {
+  String name;
+  Student(this.name);
+
+  factory Student.fromJson(Map j) =>
+      Student(j['name']);
+}
+
+void main() {
+  var data = '[{"name":"Aman"},{"name":"Rahul"}]';
+  List list = jsonDecode(data);
+  var students = list.map((e) =>
+      Student.fromJson(e)).toList();
+
+  students.forEach((s) => print(s.name));
+}
+
+// Q2. Demonstrate Future, async and await.
+
+Future<String> getData() async {
+  await Future.delayed(Duration(seconds: 2));
+  return 'Data Loaded';
+}
+
+void main() async {
+  print(await getData());
+}
+
+// Q3. Fetch data from public REST API.
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  Future getData() async {
+    var r = await http.get(Uri.parse(
+      'https://jsonplaceholder.typicode.com/posts/1'));
+    return r.body;
+  }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: FutureBuilder(
+      future: getData(),
+      builder: (c, s) => Text(s.data ?? 'Loading...'),
+    ),
+  );
+}
+
+// Q4. Fetch post title and body using Card.
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  Future getPost() async {
+    var r = await http.get(Uri.parse(
+      'https://jsonplaceholder.typicode.com/posts/1'));
+    return jsonDecode(r.body);
+  }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: FutureBuilder(
+      future: getPost(),
+      builder: (c, s) {
+        if (!s.hasData) return CircularProgressIndicator();
+        return Card(child: ListTile(
+          title: Text(s.data['title']),
+          subtitle: Text(s.data['body']),
+        ));
+      },
+    ),
+  );
+}
+
+// Q5. Display CircularProgressIndicator while fetching API data.
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  Future getData() async => await http.get(Uri.parse(
+    'https://jsonplaceholder.typicode.com/posts'));
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: FutureBuilder(
+      future: getData(),
+      builder: (c, s) {
+        if (s.connectionState == ConnectionState.waiting)
+          return Center(child: CircularProgressIndicator());
+        return Text('Data Loaded');
+      },
+    ),
+  );
+}
+
+// Q6. Fetch and display data using FutureBuilder.
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  Future getData() async => await http.get(Uri.parse(
+    'https://jsonplaceholder.typicode.com/posts/1'));
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: FutureBuilder(
+      future: getData(),
+      builder: (c, s) {
+        if (!s.hasData) return CircularProgressIndicator();
+        return Text(s.data.body);
+      },
+    ),
+  );
+}
+
+// Q7. Fetch posts and display titles using ListView.builder.
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  Future getData() async {
+    var r = await http.get(Uri.parse(
+      'https://jsonplaceholder.typicode.com/posts'));
+    return jsonDecode(r.body);
+  }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: FutureBuilder(
+      future: getData(),
+      builder: (c, s) {
+        if (!s.hasData) return CircularProgressIndicator();
+        return ListView.builder(
+          itemCount: s.data.length,
+          itemBuilder: (c, i) =>
+            ListTile(title: Text(s.data[i]['title'])),
+        );
+      },
+    ),
+  );
+}
+
+// Q8. Fetch users and display name and email.
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  Future getUsers() async {
+    var r = await http.get(Uri.parse(
+      'https://jsonplaceholder.typicode.com/users'));
+    return jsonDecode(r.body);
+  }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: FutureBuilder(
+      future: getUsers(),
+      builder: (c, s) {
+        if (!s.hasData) return CircularProgressIndicator();
+        return ListView.builder(
+          itemCount: s.data.length,
+          itemBuilder: (c, i) {
+            var u = s.data[i];
+            return ListTile(
+              leading: CircleAvatar(child: Text(u['name'][0])),
+              title: Text(u['name']),
+              subtitle: Text(u['email']),
+            );
+          },
+        );
+      },
+    ),
+  );
+}
+
+// Q9. Convert API data into objects using fromJson().
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+class Post {
+  String title;
+  Post.fromJson(Map j) : title = j['title'];
+}
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  Future getData() async {
+    var r = await http.get(Uri.parse(
+      'https://jsonplaceholder.typicode.com/posts'));
+    return (jsonDecode(r.body) as List)
+        .map((e) => Post.fromJson(e)).toList();
+  }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: FutureBuilder(
+      future: getData(),
+      builder: (c, s) {
+        if (!s.hasData) return CircularProgressIndicator();
+        return ListView(
+          children: s.data.map<Widget>(
+            (p) => ListTile(title: Text(p.title))
+          ).toList(),
+        );
+      },
+    ),
+  );
+}
+
+// Q10. Handle API errors and display Retry button.
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatefulWidget {
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  Future getData() async {
+    var r = await http.get(Uri.parse(
+      'https://jsonplaceholder.typicode.com/posts'));
+    if (r.statusCode != 200) throw Exception();
+    return 'Data Loaded';
+  }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: FutureBuilder(
+      future: getData(),
+      builder: (c, s) {
+        if (s.hasError)
+          return ElevatedButton(
+            onPressed: () => setState(() {}),
+            child: Text('Retry'));
+        if (!s.hasData) return CircularProgressIndicator();
+        return Text(s.data);
+      },
+    ),
+  );
+}
+
+// Q11. Fetch users and open Detail screen.
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  Future getData() async {
+    var r = await http.get(Uri.parse(
+      'https://jsonplaceholder.typicode.com/users'));
+    return jsonDecode(r.body);
+  }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: FutureBuilder(
+      future: getData(),
+      builder: (c, s) {
+        if (!s.hasData) return CircularProgressIndicator();
+        return ListView.builder(
+          itemCount: s.data.length,
+          itemBuilder: (c, i) => ListTile(
+            title: Text(s.data[i]['name']),
+            onTap: () => Navigator.push(c,
+              MaterialPageRoute(builder: (_) =>
+                Detail(s.data[i]))),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+class Detail extends StatelessWidget {
+  final u;
+  Detail(this.u);
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: Text('${u['name']}\n${u['email']}'),
+  );
+}
+
+// Q12. Filter API data using Search TextField.
+
+import 'package:flutter/material.dart';
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatefulWidget {
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  List names = ['Aman', 'Rahul', 'Rohit'];
+  String search = '';
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: Column(children: [
+      TextField(onChanged: (v) =>
+        setState(() => search = v)),
+      ...names.where((n) =>
+        n.toLowerCase().contains(search.toLowerCase()))
+        .map((n) => ListTile(title: Text(n))),
+    ]),
+  );
+}
+
+// Q12. Filter API data using Search TextField.
+
+import 'package:flutter/material.dart';
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatefulWidget {
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  List names = ['Aman', 'Rahul', 'Rohit'];
+  String search = '';
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: Column(children: [
+      TextField(onChanged: (v) =>
+        setState(() => search = v)),
+      ...names.where((n) =>
+        n.toLowerCase().contains(search.toLowerCase()))
+        .map((n) => ListTile(title: Text(n))),
+    ]),
+  );
+}
+
+// Q13. Reload API data using RefreshIndicator.
+
+import 'package:flutter/material.dart';
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: RefreshIndicator(
+      onRefresh: () async {
+        await Future.delayed(Duration(seconds: 1));
+      },
+      child: ListView(children: [
+        ListTile(title: Text('Apple')),
+        ListTile(title: Text('Mango')),
+      ]),
+    ),
+  );
+}
+
+// Q14. Send title and body using http.post().
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  final t = TextEditingController();
+  final b = TextEditingController();
+
+  void send() async {
+    var r = await http.post(
+      Uri.parse('https://jsonplaceholder.typicode.com/posts'),
+      body: {'title': t.text, 'body': b.text},
+    );
+    print(r.body);
+  }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    body: Column(children: [
+      TextField(controller: t),
+      TextField(controller: b),
+      ElevatedButton(onPressed: send, child: Text('Send')),
+    ]),
+  );
+}
+
+// Q15. Fetch products and display in GridView.
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  Future getData() async {
+    var r = await http.get(Uri.parse(
+      'https://fakestoreapi.com/products'));
+    return jsonDecode(r.body);
+  }
+
+  @override
+  Widget build(BuildContext c) => Scaffold(
+    appBar: AppBar(title: Text('Products')),
+    body: FutureBuilder(
+      future: getData(),
+      builder: (c, s) {
+        if (s.hasError) return Text('Error');
+        if (!s.hasData) return CircularProgressIndicator();
+        return GridView.builder(
+          itemCount: s.data.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2),
+          itemBuilder: (c, i) {
+            var p = s.data[i];
+            return Column(children: [
+              Expanded(child: Image.network(p['image'])),
+              Text(p['title']),
+              Text('\$${p['price']}'),
+            ]);
+          },
+        );
+      },
+    ),
+  );
+}
+
+

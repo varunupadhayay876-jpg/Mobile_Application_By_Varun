@@ -1,0 +1,268 @@
+// Q1. Create a Flutter application to connect Firebase
+// and display "Firebase Connected".
+
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MaterialApp(home: Scaffold(
+    body: Center(child: Text("Firebase Connected")),
+  )));
+}
+
+// Q2. Create a Flutter application to register a user
+// using Firebase Authentication.
+
+import 'package:firebase_auth/firebase_auth.dart';
+
+void register() async {
+  await FirebaseAuth.instance.createUserWithEmailAndPassword(
+    email: 'abc@gmail.com',
+    password: '123456',
+  );
+}
+
+// Q3. Create a Flutter application to login a user
+// using signInWithEmailAndPassword().
+
+import 'package:firebase_auth/firebase_auth.dart';
+
+void login() async {
+  await FirebaseAuth.instance.signInWithEmailAndPassword(
+    email: 'abc@gmail.com',
+    password: '123456',
+  );
+}
+
+// Q4. Display logged-in user's email and provide Logout button.
+
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+void main() => runApp(MaterialApp(home: Scaffold(
+  body: Column(children: [
+    Text(FirebaseAuth.instance.currentUser!.email!),
+    ElevatedButton(
+      onPressed: () => FirebaseAuth.instance.signOut(),
+      child: Text("Logout"),
+    ),
+  ]),
+)));
+
+// Q5. Display authentication errors using SnackBar.
+
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+void login(BuildContext context) async {
+  try {
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: 'abc@gmail.com', password: '123456',
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e.toString())),
+    );
+  }
+}
+
+// Q6. Reset password using sendPasswordResetEmail().
+
+import 'package:firebase_auth/firebase_auth.dart';
+
+void resetPassword() async {
+  await FirebaseAuth.instance.sendPasswordResetEmail(
+    email: 'abc@gmail.com',
+  );
+}
+
+// Q7. Show Login or Home screen according to login state.
+
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+void main() => runApp(MaterialApp(home: Scaffold(
+  body: StreamBuilder(
+    stream: FirebaseAuth.instance.authStateChanges(),
+    builder: (c, s) => Text(s.hasData ? "Home" : "Login"),
+  ),
+)));
+
+// Q8. Add student record to Cloud Firestore.
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void addStudent() async {
+  await FirebaseFirestore.instance.collection('students').add({
+    'name': 'Rahul',
+    'roll': '101',
+    'course': 'BCA',
+  });
+}
+
+// Q9. Display students using StreamBuilder and ListView.
+
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void main() => runApp(MaterialApp(home: Scaffold(
+  body: StreamBuilder(
+    stream: FirebaseFirestore.instance.collection('students').snapshots(),
+    builder: (c, s) {
+      if (!s.hasData) return CircularProgressIndicator();
+      return ListView(
+        children: s.data!.docs.map((d) =>
+          ListTile(title: Text(d['name']))).toList(),
+      );
+    },
+  ),
+)));
+
+// Q10. Update an existing student record in Firestore.
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void updateStudent() async {
+  await FirebaseFirestore.instance
+      .collection('students')
+      .doc('student1')
+      .update({'name': 'Aman'});
+}
+
+// Q11. Delete a student record from Firestore.
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void deleteStudent() async {
+  await FirebaseFirestore.instance
+      .collection('students')
+      .doc('student1')
+      .delete();
+}
+
+// Q12. Display students of selected course using where().
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void getStudents() async {
+  var data = await FirebaseFirestore.instance
+      .collection('students')
+      .where('course', isEqualTo: 'BCA')
+      .get();
+
+  for (var d in data.docs) {
+    print(d.data());
+  }
+}
+
+// Q13. Display students in ascending order using orderBy().
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void sortStudents() async {
+  var data = await FirebaseFirestore.instance
+      .collection('students')
+      .orderBy('name')
+      .get();
+
+  for (var d in data.docs) {
+    print(d['name']);
+  }
+}
+
+// Q14. Add, view and delete user notes in Firestore.
+
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void main() => runApp(MaterialApp(home: Notes()));
+
+class Notes extends StatelessWidget {
+  final db = FirebaseFirestore.instance.collection('notes');
+
+  @override
+  Widget build(BuildContext context) {
+    var uid = FirebaseAuth.instance.currentUser!.uid;
+
+    return Scaffold(
+      body: Column(children: [
+        ElevatedButton(
+          onPressed: () => db.add({'note': 'Hello', 'uid': uid}),
+          child: Text("Add Note"),
+        ),
+        Expanded(child: StreamBuilder(
+          stream: db.where('uid', isEqualTo: uid).snapshots(),
+          builder: (c, s) {
+            if (!s.hasData) return CircularProgressIndicator();
+            return ListView(children: s.data!.docs.map((d) =>
+              ListTile(
+                title: Text(d['note']),
+                trailing: IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: () => db.doc(d.id).delete(),
+                ),
+              )).toList());
+          },
+        )),
+      ]),
+    );
+  }
+}
+
+// Q15. Create Student Management App using Firebase
+// Authentication and Firestore CRUD operations.
+
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void main() => runApp(MaterialApp(home: Home()));
+
+class Home extends StatelessWidget {
+  final db = FirebaseFirestore.instance.collection('students');
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(children: [
+        ElevatedButton(
+          onPressed: () => db.add({
+            'name': 'Rahul', 'roll': '101', 'course': 'BCA'
+          }),
+          child: Text("Add"),
+        ),
+        ElevatedButton(
+          onPressed: () => FirebaseAuth.instance.signOut(),
+          child: Text("Logout"),
+        ),
+        Expanded(child: StreamBuilder(
+          stream: db.snapshots(),
+          builder: (c, s) {
+            if (!s.hasData) return CircularProgressIndicator();
+            return ListView(children: s.data!.docs.map((d) =>
+              ListTile(
+                title: Text(d['name']),
+                trailing: Row(mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.edit),
+                      onPressed: () => db.doc(d.id).update({
+                        'name': 'Aman'
+                      }),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () => db.doc(d.id).delete(),
+                    ),
+                  ]),
+              )).toList());
+          },
+        )),
+      ]),
+    );
+  }
+}
+
